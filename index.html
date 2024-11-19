@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>CSC_51052 - 2024 - Project</title>
+    <!-- Link to D3.js -->
+    <script type="text/javascript" src="js/d3.v7.min.js"></script>
+    <!-- Link to your JavaScript file -->
+    <script type="text/javascript" src="js/main.js" defer></script>
+    <style>
+        svg {
+            display: block;
+            font-family: sans-serif;
+            font-size: 10px;
+        }
+        /* Autocomplete styles */
+        .autocomplete-container {
+            position: relative;
+            width: 300px;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            font-size: 16px;
+            box-sizing: border-box;
+        }
+        .autocomplete-items {
+            position: absolute;
+            border: 1px solid #d4d4d4;
+            max-height: 200px;
+            overflow-y: auto;
+            background-color: white;
+            z-index: 99;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .autocomplete-items div {
+            padding: 10px;
+            cursor: pointer;
+        }
+        .autocomplete-items div:hover {
+            background-color: #ddd;
+        }
+    </style>
+</head>
+
+<body onload="createViz();">
+    <div id="main">
+        <div class="autocomplete-container">
+            <input 
+                type="text" 
+                id="myInput" 
+                placeholder="Search for food items..." 
+                oninput="filterSuggestions()"
+            >
+            <div id="autocomplete-list" class="autocomplete-items"></div>
+        </div>
+    </div>
+</body>
+</html>
