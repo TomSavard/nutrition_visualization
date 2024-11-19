@@ -1,0 +1,7 @@
+# Ignore Mac system files
+.DS_Store
+
+# Ignore specific files
+Classeur1.xlsx
+Food_table.csv
+INF552.docx
