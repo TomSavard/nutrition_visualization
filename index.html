@@ -7,41 +7,7 @@
     <script type="text/javascript" src="js/d3.v7.min.js"></script>
     <!-- Link to your JavaScript file -->
     <script type="text/javascript" src="js/main.js" defer></script>
-    <style>
-        svg {
-            display: block;
-            font-family: sans-serif;
-            font-size: 10px;
-        }
-        /* Autocomplete styles */
-        .autocomplete-container {
-            position: relative;
-            width: 300px;
-        }
-        input[type="text"] {
-            width: 100%;
-            padding: 10px;
-            font-size: 16px;
-            box-sizing: border-box;
-        }
-        .autocomplete-items {
-            position: absolute;
-            border: 1px solid #d4d4d4;
-            max-height: 200px;
-            overflow-y: auto;
-            background-color: white;
-            z-index: 99;
-            width: 100%;
-            box-sizing: border-box;
-        }
-        .autocomplete-items div {
-            padding: 10px;
-            cursor: pointer;
-        }
-        .autocomplete-items div:hover {
-            background-color: #ddd;
-        }
-    </style>
+    <link rel="stylesheet" href="style.css">
 </head>
 
 <body onload="createViz();">
@@ -50,10 +16,22 @@
             <input 
                 type="text" 
                 id="myInput" 
-                placeholder="Search for food items..." 
+                placeholder="Rechercher un aliment..." 
                 oninput="filterSuggestions()"
             >
-            <div id="autocomplete-list" class="autocomplete-items"></div>
+            <button id="addButton" onclick="addToList()">Add to List</button>
+            <div id="autocomplete-list"></div>
+        </div>
+        <div id="itemsList">
+            <div>
+                <!-- Input for desired quantity in grams -->
+                <label for="quantityInput">Quantité (en grammes): </label>
+                <input type="number" id="quantityInput" placeholder="e.g., 100" />
+            </div>
+            <h3>Liste d'aliment</h3>
+            <ul id="selectedItemsList">
+                <!-- The selected items and quantities will appear here -->
+            </ul>
         </div>
     </div>
 </body>
