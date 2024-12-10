@@ -11,11 +11,103 @@ const FOOD_ITEMS = [];
 let transformedData =[];
 
 
+const macro_nutrients = [
+    { name: "Énergie", key: "Energie, Règlement UE N° 1169/2011 (kcal/100 g)", max: 200 },
+    { name: "Lipides", key: "Lipides (g/100 g)", max: 50 },
+    { name: "AG saturés", key: "AG saturés (g/100 g)", max: 50},
+    { name: "Glucides", key: "Glucides (g/100 g)", max: 100},
+    { name: "Sucres: ", key: "Sucres (g/100 g)", max: 100},
+    { name: "Fibres: ", key: "Fibres alimentaires (g/100 g)", max: 100},
+    { name: "Protéines", key: "Protéines, N x facteur de Jones (g/100 g)", max: 50 },
+    { name: "Sel", key: "Sel chlorure de sodium (g/100 g)", max: 5 }
+];
+
+const micro_nutrients = [
+    { name: "Calcium", key: "Calcium (mg/100 g)", max: 1200 },
+    { name: "Magnésium", key: "Magnésium (mg/100 g)", max: 400 },
+    { name: "Fer", key: "Fer (mg/100 g)", max: 18 },
+    { name: "Potassium", key: "Potassium (mg/100 g)", max: 3500 },
+    { name: "Zinc", key: "Zinc (mg/100 g)", max: 11 },
+    { name: "Sélénium", key: "Sélénium (μg/100 g)", max: 70 },
+    { name: "Phosphore", key: "Phosphore (mg/100 g)", max: 700 },
+    { name: "Iode", key: "Iode (μg/100 g)", max: 150 }
+];
+
+const vitamins = [
+    { name: "Beta-Carotène", key: "Beta-Carotène (µg/100 g)" },
+    { name: "Vitamine B1 (Thiamine)", key: "Vitamine B1 ou Thiamine (mg/100 g)" },
+    { name: "Vitamine B5", key: "Vitamine B5 ou Acide pantothénique (mg/100 g)" },
+    { name: "Vitamine B6", key: "Vitamine B6 (mg/100 g)" },
+    { name: "Vitamine C", key: "Vitamine C (mg/100 g)" },
+    { name: "Vitamine D", key: "Vitamine D (µg/100 g)" },
+    { name: "Vitamine E", key: "Vitamine E (mg/100 g)" },
+    { name: "Vitamine K1", key: "Vitamine K1 (µg/100 g)" },
+];
+
 
 // Initialize references to the input field and autocomplete list
 const inputField = document.getElementById("myInput");
 const autocompleteList = document.getElementById("autocomplete-list");
 
+
+
+/**
+ * Called at the opening of the HTML
+ * 
+ * Creates the svg element
+ * 
+ * Calls CreateCard to have the empty cards
+ * 
+ * Calls loadData(svgEl) to retrieve the database.
+ */
+function createViz() {
+    console.log("Using D3 v" + d3.version);
+    let svgEl = d3.select("#main").append("svg").attr("id", "mainSVG");
+    svgEl.attr("width", ctx.w);
+    svgEl.attr("height", ctx.h * 2);
+    svgEl.append("svg").attr("id", "CardSVG");
+
+    // Create empty cards with zero values initially
+    createCard(null, "Macro-Nutriments", 5, 15);
+    createCard(null, "Micro-Nutriments", 5 + 320, 15);
+    createCard(null, "Vitamines", 5 + 640, 15);
+
+    loadData();
+}
+
+
+
+/**
+ * Called by createViz()
+ * 
+ * Accesses the data from "data/food_table_new.csv"
+ * 
+ * Calls ProcessData(data) for specific extraction and processing
+ */
+function loadData() {
+    d3.csv("data/food_table_new.csv")
+        .then(function (data) {
+            // Preprocess and pass transformed data
+            transformedData = ProcessData(data)
+            // createSVGcard(5,5)
+            // createSVGcard(310,5)
+            ;
+        })
+        .catch(function (error) {
+            console.error("Error loading data:", error);
+            alert("An error occurred while loading the data.");
+        });
+}
+
+
+
+/**
+ * Called by loadData()
+ * 
+ * @param {*} data contains the raw data that needs to be processed to be ready to use.
+ * 
+ * @returns filteredData which contains the data with the desired format ready for use.
+ */
 function ProcessData(data) {
     console.log("Column headers:", data.columns);
 
@@ -31,29 +123,15 @@ function ProcessData(data) {
 }
 
 
-function createViz() {
-    console.log("Using D3 v" + d3.version);
-    let svgEl = d3.select("#main").append("svg").attr("id", "mainSVG");
-    svgEl.attr("width", ctx.w);
-    svgEl.attr("height", ctx.h);
-    loadData(svgEl);
-}
 
-function loadData(svgEl) {
-    d3.csv("data/food_table_new.csv")
-        .then(function (data) {
-            // Preprocess and pass transformed data
-            transformedData = ProcessData(data)
-            // createSVGcard(5,5)
-            // createSVGcard(310,5)
-            ;
-        })
-        .catch(function (error) {
-            console.error("Error loading data:", error);
-            alert("An error occurred while loading the data.");
-        });
-}
 
+/**
+ * called by the HTML when the search bar is used.
+ * 
+ * updates the selected item and modify the display by calling updateCardValues(item,category)
+ * 
+ * calls updateCardValues(item,category)
+ */
 function filterSuggestions() {
     const query = inputField.value.toLowerCase();
     autocompleteList.innerHTML = ""; // Clear previous suggestions
@@ -72,7 +150,9 @@ function filterSuggestions() {
             suggestionDiv.addEventListener("click", () => {
                 inputField.value = item.alim_nom_fr; // Set input to selected suggestion
                 autocompleteList.innerHTML = ""; // Clear suggestions
-                DisplayChosenElement(item); // Display the chosen element
+                updateCardValues(item,"Macro-Nutriments");
+                updateCardValues(item,"Micro-Nutriments");
+                updateCardValues(item,"Vitamines");
             });
 
             autocompleteList.appendChild(suggestionDiv);
@@ -80,256 +160,114 @@ function filterSuggestions() {
     }
 }
 
+
+
 document.addEventListener("click", (event) => {
     if (event.target !== inputField) {
         autocompleteList.innerHTML = "";
     }
 });
 
-function DisplayChosenElement(selectedItem) {
-    const chosenElement = selectedItem.alim_nom_fr.trim();
-    console.log("Chosen Element:", chosenElement);
-
-    if (transformedData && chosenElement) {
-        const itemData = transformedData.find(row =>
-            row.alim_nom_fr.toLowerCase() === chosenElement.toLowerCase()
-        );
-
-        if (itemData) {
-            // Call the function to create a card displaying selected item's details
-            console.log(itemData)
-            mainCard(5, 15, itemData)
-            vitaminCard(5, 15, itemData)
-            mineralCard(5, 15, itemData);
-        } else {
-            console.log("No matching item found.");
-        }
-    } else {
-        console.log("No data or input element is empty.");
-    }
-}
-
-function calculateMaxValues(dataset, nutrients) {
-    // Calculate max values for each nutrient in the dataset
-    const maxValues = {};
-    nutrients.forEach(nutrient => {
-        maxValues[nutrient.key] = d3.max(dataset, d => parseFloat(d[nutrient.key]) || 0);
-    });
-    return maxValues;
-}
 
 
-function mainCard(x, y, item) {
-    const mainSVG = d3.select("#mainSVG");
 
-    // Create the card's background using a rectangle
-    const nestedSvg = mainSVG.append("g")
-        .attr("id", "infoCard")
+
+function createCard(item, category, x, y) {
+    const CardSVG = d3.select("#CardSVG");
+    const myCard = CardSVG.append("g")
+        .attr("id", category)
         .attr("transform", `translate(${x}, ${y})`); // Position at top-left corner with some padding
 
     // Background of the card (rect element)
-    nestedSvg.append("rect")
-        .attr("x", 0)
-        .attr("y", 0)
-        .attr("width", 300)
-        .attr("height", 490)
-        .attr("rx", 10)
-        .attr("ry",10)
-        .style("fill", "#f9f9f9")
-        .style("stroke", "#333")
-        .style("stroke-width", "2");
-
-    // Add Food Name
-    nestedSvg.append("text").attr("x", 10).attr("y", 30).style("font-size", "16px").style("font-weight", "bold").text(item.alim_nom_fr);
-    // Add Category
-    nestedSvg.append("text").attr("x", 10).attr("y", 60).style("font-size", "14px").style("fill", "#666").text(item.alim_ssssgrp_nom_fr);
-
-    // Nutrient Texts and Bars
-    const nutrients = [
-        { name: "Énergie", key: "Energie, Règlement UE N° 1169/2011 (kcal/100 g)", max: 200 },
-        { name: "Lipides", key: "Lipides (g/100 g)", max: 50 },
-        { name: "AG saturés", key: "AG saturés (g/100 g)", max: 50},
-        { name: "Glucides", key: "Glucides (g/100 g)", max: 100},
-        { name: "Sucres: ", key: "Sucres (g/100 g)", max: 100},
-        { name: "Fibres: ", key: "Fibres alimentaires (g/100 g)", max: 100},
-        { name: "Protéines", key: "Protéines, N x facteur de Jones (g/100 g)", max: 50 },
-        { name: "Sel", key: "Sel chlorure de sodium (g/100 g)", max: 5 }
-    ];
-
-nutrients.forEach((nutrient, index) => {
-        const value = parseFloat(item[nutrient.key]) || 0; // Default to 0 if the value is missing
-        const max = (d3.max(transformedData, d => parseFloat(d[nutrient.key]) || 0) || 1)/3;
-        console.log(nutrient.key + max)
-        const barWidth = Math.min(280, 280 * (value / max));
-        const yOffset = 90 + index * 50; // Position each nutrient block vertically
-
-        // Add nutrient text
-        nestedSvg.append("text")
-            .attr("x", 10)
-            .attr("y", yOffset)
-            .style("font-size", "12px")
-            .style("fill", "#333")
-            .text(`${nutrient.name}: ${value.toFixed(1)} ${nutrient.key.includes("(g/100 g)") ? "g" : "kcal"}`);
-
-        // Add nutrient bar
-        nestedSvg.append("rect")
-            .attr("x", 10)
-            .attr("y", yOffset + 10)
-            .attr("width", barWidth)
-            .attr("height", 10)
-            .style("fill", "#4CAF50") // Green color for the bar
-            .style("stroke", "#333")
-            .style("stroke-width", "1");
-    });
-}
-
-function mineralCard(x, y, item) {
-    const mainSVG = d3.select("#mainSVG");
-
-    const microNutrientCard = mainSVG.append("g")
-        .attr("id", "microNutrientCard")
-        .attr("transform", `translate(${x + 320}, ${y})`); // Position second card next to the first one
-
-    // Background of the micro-nutrient card
-    microNutrientCard.append("rect")
+    myCard.append("rect")
         .attr("x", 0)
         .attr("y", 0)
         .attr("width", 300)
         .attr("height", 490)
         .attr("rx", 10)
         .attr("ry", 10)
-        .style("fill", "#f9f9f9")
-        .style("stroke", "#333")
+        .style("fill", "#323233")
+        .style("stroke", "white")
         .style("stroke-width", "2");
 
-    // Add Micro-Nutrients Info Title
-    microNutrientCard.append("text").attr("x", 10).attr("y", 30).style("font-size", "16px").style("font-weight", "bold").text("Micro-Nutrients");
+    // Card title
+    myCard.append("text")
+        .attr("x", 10)
+        .attr("y", 30)
+        .style("font-size", "16px")
+        .style("font-weight", "bold")
+        .text(category)
+        .style("fill", "white");
 
-    // Micro-Nutrients Data
-    const nutrients = [
-        { name: "Calcium", key: "Calcium (mg/100 g)", max: 1200 },
-        { name: "Magnésium", key: "Magnésium (mg/100 g)", max: 400 },
-        { name: "Fer", key: "Fer (mg/100 g)", max: 18 },
-        { name: "Potassium", key: "Potassium (mg/100 g)", max: 3500 },
-        { name: "Zinc", key: "Zinc (mg/100 g)", max: 11 },
-        { name: "Sélénium", key: "Sélénium (μg/100 g)", max: 70 },
-        { name: "Phosphore", key: "Phosphore (mg/100 g)", max: 700 },
-        { name: "Iode", key: "Iode (μg/100 g)", max: 150 }
-    ];
+    let nutrients = [];
+    if (category === "Macro-Nutriments") {
+        nutrients = macro_nutrients;
+    } else if (category === "Micro-Nutriments") {
+        nutrients = micro_nutrients;
+    } else if (category === "Vitamines") {
+        nutrients = vitamins;
+    }
+    // Default behavior when no item is provided (empty state with zeros)
+    if (!item) {
+        // Loop over nutrient categories and show them with zero values and bars with zero width
+        nutrients.forEach((nutrient, index) => {
+            const value = 0; // Set value to 0
+            const max = 1; // Max value is 1 (to avoid division by zero in the bar calculation)
+            const barWidth = Math.min(280, 280 * (value / max)); // This will be 0 since value is 0
+            const yOffset = 90 + index * 50; // Position each nutrient block vertically
 
-    nutrients.forEach((nutrient, index) => {
-        const value = parseFloat(item[nutrient.key]) || 0; // Default to 0 if the value is missing
-        const max = (d3.max(transformedData, d => parseFloat(d[nutrient.key]) || 0) || 1)/3;
-        console.log(nutrient.key + max)
-        const barWidth = Math.min(280, 280 * (value / max));
-        const yOffset = 90 + index * 50; // Position each nutrient block vertically
+            // Add nutrient text (name and zero value)
+            myCard.append("text")
+                .attr("x", 10)
+                .attr("y", yOffset)
+                .style("font-size", "12px")
+                .style("fill", "white")
+                .text(`${nutrient.name}: ${value} ${nutrient.key.includes("(g/100 g)") ? "g" : "kcal"}`);
 
-        // Add nutrient text
-        microNutrientCard.append("text")
-            .attr("x", 10)
-            .attr("y", yOffset)
-            .style("font-size", "12px")
-            .style("fill", "#333")
-            .text(`${nutrient.name}: ${value.toFixed(1)} ${nutrient.key.includes("μg/100 g") ? "μg" : "mg"}`);
-
-        // Add nutrient bar
-        microNutrientCard.append("rect")
-            .attr("x", 10)
-            .attr("y", yOffset + 10)
-            .attr("width", Math.min(barWidth, 280)) // Cap the bar at the max width
-            .attr("height", 10)
-            .style("fill", "#4CAF50") // Green color for the bar
-            .style("stroke", "#333")
-            .style("stroke-width", "1");
-    });
+            // Add nutrient bar (will be width 0)
+            myCard.append("rect")
+                .attr("x", 10)
+                .attr("y", yOffset + 10)
+                .attr("width", barWidth)
+                .attr("height", 10)
+                .style("fill", "#4CAF50") // Green color for the bar
+                .style("stroke", "#333")
+                .style("stroke-width", "1");
+        });
+    }
 }
-
-function vitaminCard(x, y, item) {
-    const mainSVG = d3.select("#mainSVG");
-
-    const vitaminCard = mainSVG.append("g")
-        .attr("id", "vitaminCard")
-        .attr("transform", `translate(${x + 640}, ${y})`); // Position third card next to the second one
-
-    // Background of the vitamin card (same size as the micro-nutrient card)
-    vitaminCard.append("rect")
-        .attr("x", 0)
-        .attr("y", 0)
-        .attr("width", 300)
-        .attr("height", 490)
-        .attr("rx", 10)
-        .attr("ry", 10)
-        .style("fill", "#f9f9f9")
-        .style("stroke", "#333")
-        .style("stroke-width", "2");
-
-    // Add Vitamins Info Title
-    vitaminCard.append("text").attr("x", 10).attr("y", 30).style("font-size", "16px").style("font-weight", "bold").text("Vitamines");
-
-    // Vitamins Data
-    const vitamins = [
-        { name: "Beta-Carotène", key: "Beta-Carotène (µg/100 g)" },
-        { name: "Vitamine B1 (Thiamine)", key: "Vitamine B1 ou Thiamine (mg/100 g)" },
-        { name: "Vitamine B5", key: "Vitamine B5 ou Acide pantothénique (mg/100 g)" },
-        { name: "Vitamine B6", key: "Vitamine B6 (mg/100 g)" },
-        { name: "Vitamine C", key: "Vitamine C (mg/100 g)" },
-        { name: "Vitamine D", key: "Vitamine D (µg/100 g)" },
-        { name: "Vitamine E", key: "Vitamine E (mg/100 g)" },
-        { name: "Vitamine K1", key: "Vitamine K1 (µg/100 g)" },
-    ];
-
-    vitamins.forEach((vitamin, index) => {
-        const value = parseFloat(item[vitamin.key]) || 0; // Default to 0 if the value is missing
-        const max = (d3.max(transformedData, d => parseFloat(d[vitamin.key]) || 0) || 1)/3; // Get dynamic max value for vitamin
-        const barWidth = Math.min(280, 280 * (value / max));
-        const yOffset = 90 + index * 50; // Position each vitamin block vertically
-
-        // Add vitamin text
-        vitaminCard.append("text")
-            .attr("x", 10)
-            .attr("y", yOffset)
-            .style("font-size", "12px")
-            .style("fill", "#333")
-            .text(`${vitamin.name}: ${value.toFixed(1)} ${vitamin.key.includes("µg/100 g") ? "µg" : "mg"}`);
-
-        // Add vitamin bar
-        vitaminCard.append("rect")
-            .attr("x", 10)
-            .attr("y", yOffset + 10)
-            .attr("width", Math.min(barWidth, 280)) // Cap the bar at the max width
-            .attr("height", 10)
-            .style("fill", "#4CAF50") // Green color for the bar
-            .style("stroke", "#333")
-            .style("stroke-width", "1");
-    });
-}
-
-
-
-
-/// The list 
 
 // Array to hold the list of selected items with their quantities
 let selectedItems = [];
 
-// Function to handle adding items to the list
+// This function gets called when the "Add to List" button is clicked
 function addToList() {
-    // Get the selected food item and quantity from the input fields
-    const foodItem = document.getElementById('foodItemSelect').value;
-    const quantity = parseFloat(document.getElementById('quantityInput').value);
+    // Get the value of the selected item and quantity
+    const selectedItem = document.getElementById("myInput").value;
+    const quantity = document.getElementById("quantityInput").value;
 
-    // Check if the quantity is valid
-    if (isNaN(quantity) || quantity <= 0) {
-        alert('Please enter a valid quantity in grams.');
-        return;
+    // Check if both the item and quantity are selected
+    if (selectedItem && quantity) {
+        // Create a new list item for the selected item and quantity
+        const listItem = document.createElement("li");
+        
+        // Set the text of the list item to the selected item and quantity
+        listItem.textContent = `${selectedItem} - ${quantity} grams`;
+
+        listItem.classList.add('white-text');
+
+        // Append the new list item to the selectedItemsList UL
+        document.getElementById("selectedItemsList").appendChild(listItem);
+
+        // Optionally, clear the input fields after adding the item to the list
+        document.getElementById("myInput").value = '';
+        document.getElementById("quantityInput").value = '';
+    } else {
+        // Optionally, show an alert or error message if the input is invalid
+        alert("Please enter a valid food item and quantity.");
     }
-
-    // Add the item and quantity to the selectedItems array
-    selectedItems.push({ foodItem, quantity });
-
-    // Update the list display
-    displaySelectedItems();
 }
+
 
 // Function to display the selected items and their quantities
 function displaySelectedItems() {
@@ -360,4 +298,56 @@ function removeItem(foodItem) {
     
     // Update the list display
     displaySelectedItems();
+}
+
+function calculateMaxValues(dataset, nutrients) {
+    // Calculate max values for each nutrient in the dataset
+    const maxValues = {};
+    nutrients.forEach(nutrient => {
+        maxValues[nutrient.key] = d3.max(dataset, d => parseFloat(d[nutrient.key]) || 0);
+    });
+    return maxValues;
+}
+
+
+function updateCardValues(item, category) {
+    const cardGroup = d3.select(`#${category}`);
+
+    // Check if the card exists
+    if (cardGroup.empty()) {
+        console.log(`Card for ${category} not found.`);
+        return;
+    }
+
+    let nutrients = [];
+    if (category === "Macro-Nutriments") {
+        nutrients = macro_nutrients;
+    } else if (category === "Micro-Nutriments") {
+        nutrients = micro_nutrients;
+    } else if (category === "Vitamines") {
+        nutrients = vitamins;
+    }
+    // Iterate over each nutrient and update the values
+    nutrients.forEach((nutrient, index) => {
+        const value = parseFloat(item[nutrient.key]) || 0; // Default to 0 if the value is missing
+        const max = (d3.max(transformedData, d => parseFloat(d[nutrient.key]) || 0) || 1)/3;
+        const barWidth = Math.min(280, 280 * (value / max)); // Bar width based on the value
+
+        const yOffset = 90 + index * 50; // Position each nutrient block vertically
+
+        // Select the text and update its content
+        cardGroup.selectAll("text")
+            .filter(function (d, i) { return i !== 0 && i === index + 1; }) 
+            .text(`${nutrient.name}: ${value.toFixed(1)} ${nutrient.key.includes("(g/100 g)") ? "g" : "kcal"}`)
+            .transition() // Apply transition to text
+            .duration(1000)
+            .style("fill", "white");
+
+        // Select the bar and transition the width
+        cardGroup.selectAll("rect")
+            .filter(function(d, i) { return i === index + 1; }) // Select the bar rect
+            .transition() // Apply transition to the bar
+            .duration(1000)
+            .attr("width", barWidth);
+    });
 }
