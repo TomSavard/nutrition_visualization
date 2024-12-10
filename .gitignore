@@ -1,5 +1,6 @@
 # Ignore Mac system files
 .DS_Store
+js/.DS_Store
 
 # Ignore specific files
 Classeur1.xlsx
