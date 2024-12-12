@@ -10,9 +10,10 @@ const FOOD_CATEGORIES = ["fruits, légumes, légumineuses et oléagineux", "prod
 const FOOD_ITEMS = [];
 let transformedData =[];
 let macroData = {
-    Carbohydrates: 0,
-    Proteins: 0,
-    Fats: 0
+    Calories: 0,
+    Glucides: 0,
+    Proteines: 0,
+    Lipides: 0
 };
 
 
@@ -246,7 +247,7 @@ function createCard(item, category, x, y) {
                 .attr("height", 10)
                 .attr("rx", 5) // Horizontal corner radius
                 .attr("ry", 5) // Vertical corner radius
-                .style("fill", "#4CAF50") // Green color for the bar
+                .style("fill", "#52E08D") // Green color for the bar
                 .style("stroke", "#333")
                 .style("stroke-width", "1");
         });
@@ -271,8 +272,6 @@ function addToList() {
         selectedItems.push(newItem)
 
         displaySelectedItems();
-        updateMacroData();
-        updateCaloriesViz(2600, 1500, macroData);
 
 
     } else {
@@ -307,6 +306,8 @@ function displaySelectedItems() {
 
         selectedItemsList.appendChild(listItem);
     });
+    updateMacroData();
+    updateCaloriesViz(2600, macroData);
     
 }
 
@@ -318,6 +319,7 @@ function removeItem(foodItem) {
     selectedItems = selectedItems.filter(item => item.foodItem !== foodItem);
     // Update the list display
     displaySelectedItems();
+
 }
 
 
@@ -389,15 +391,18 @@ function updateCardValues(item, category) {
 
 
 function createCaloriesViz(totalCalories = 2600, eatenCalories = 0, macroData = {}) {
-
+    // we select our main svg
     const mainG = d3.select("#mainSVG");
+
+    // then we populate it with a new Group which we place
     const CalorieCountG = mainG.append("g")
         .attr("id", "CalorieCountG")
         .attr("transform", "translate(1050, 15)")
         .style("border-radius", "12px")
         .style("overflow", "hidden");
 
-    // Add a background rectangle to the group
+
+    // We add a rectanlge for the background of the group and better visualization of this element
     CalorieCountG.append("rect")
         .attr("x", 0)
         .attr("y", 0)
@@ -407,7 +412,18 @@ function createCaloriesViz(totalCalories = 2600, eatenCalories = 0, macroData = 
         .attr("rx", 12) 
         .attr("ry", 12);
 
-    // Circular Progress Bar
+    // Add title text to the top of the group
+    CalorieCountG.append("text")
+    .attr("x", 300)  // Horizontal position of the title
+    .attr("y", 50)   // Vertical position (a little above the content)
+    .attr("text-anchor", "middle")  // Center the text horizontally
+    .style("font-size", "22px")
+    .style("font-weight", "bold")
+    .style("fill", "#FFF")  // White color
+    .style("stroke", "white")  // Optional for clarity
+    .text("Apports du jour");
+
+    // We make a circular progress bar for the calories 
     const radius = 70;
     const circumference = 2 * Math.PI * radius;
     const progressGroup = CalorieCountG.append("g")
@@ -418,25 +434,30 @@ function createCaloriesViz(totalCalories = 2600, eatenCalories = 0, macroData = 
         .attr("r", radius)
         .attr("stroke", "#e0e0e0")
         .attr("stroke-width", 10)
+        .attr("opacity", 0.1)
         .attr("fill", "none");
 
     // Progress circle
     const progressCircle = progressGroup.append("circle")
+        .attr("id", "progressCircle")
         .attr("r", radius)
-        .attr("stroke", "#FF9800")
+        .attr("stroke", "#52E08D")
         .attr("stroke-width", 10)
         .attr("fill", "none")
         .attr("stroke-dasharray", circumference)
-        .attr("stroke-dashoffset", circumference);
+        .attr("stroke-dashoffset", circumference)
+        .attr("stroke-linecap", "round") // Makes the ends rounded
+        .attr("transform", "rotate(-90)"); // Adjusts the start point to the north
 
     // Text in the center of the circle (Empty values)
     progressGroup.append("text")
+        .attr("id", "CaloriesCount")
         .attr("text-anchor", "middle")
         .attr("dy", "0.35em")
         .attr("fill", "#333")
         .style("font-size", "16px")
         .style("stroke", "white")
-        .text(`${eatenCalories} kcal`);
+        .text(`${0} kcal`);
 
     progressGroup.append("text")
         .attr("text-anchor", "middle")
@@ -444,17 +465,22 @@ function createCaloriesViz(totalCalories = 2600, eatenCalories = 0, macroData = 
         .attr("fill", "#666")
         .style("font-size", "12px")
         .style("stroke", "white")
-        .text("Calories consumed");
+        .text("Total calorique");
 
+        
     // Macro Nutrient Bars
     const macroGroup = CalorieCountG.append("g")
+        .attr("id", "macroGroup")
         .attr("transform", "translate(250, 100)");
+
+    const barsGroup = macroGroup.append("g").attr("id", "barsGroup");
+    const percentGroup = macroGroup.append("g").attr("id", "percentGroup");
 
     const total_Carbs = 325;
     const total_Protein = 100;
     const total_Fats = 70;
     const macros = Object.entries(macroData); // Empty data for now
-    macros.forEach((macro, i) => {
+    macros.slice(1).forEach((macro, i) => {
         const [name, value] = macro;
         const yOffset = i * 50;
 
@@ -477,20 +503,21 @@ function createCaloriesViz(totalCalories = 2600, eatenCalories = 0, macroData = 
             .attr("height", 10)
             .attr("rx", 5)
             .attr("ry", 5)
+            .attr("opacity", 0.1)
             .attr("fill", "#e0e0e0");
 
         // Progress bar (Empty for now)
-        macroGroup.append("rect")
+        barsGroup.append("rect")
             .attr("x", 100)
             .attr("y", yOffset)
             .attr("width", 0) // Empty bar
             .attr("height", 10)
-            .attr("fill", "#4CAF50")
+            .attr("fill", "#52E08D")
             .attr("rx", 5)
             .attr("ry", 5);
 
         // Percentage text (Empty for now)
-        macroGroup.append("text")
+        percentGroup.append("text")
             .attr("x", 310)
             .attr("y", yOffset)
             .attr("dy", "1em")
@@ -505,10 +532,11 @@ function createCaloriesViz(totalCalories = 2600, eatenCalories = 0, macroData = 
 
 // Function to update the macroData object based on the transformed data
 function updateMacroData() {
-    let macroData = {
-        Carbohydrates: 0,
-        Proteins: 0,
-        Fats: 0
+    macroData = {
+        Calories: 0,
+        Glucides: 0,
+        Proteines: 0,
+        Lipides: 0
     };
 
     selectedItems.forEach(selected =>{
@@ -517,9 +545,10 @@ function updateMacroData() {
         const matchingRow = transformedData.find(item => item.alim_nom_fr == foodItem);
 
         if (matchingRow){
-            macroData.Carbohydrates += (parseFloat(matchingRow["Glucides (g/100 g)"]) || 0) * quantity/100;
-            macroData.Proteins += (parseFloat(matchingRow["Protéines, N x facteur de Jones (g/100 g)"]) || 0) * quantity/100;
-            macroData.Fats += (parseFloat(matchingRow["Lipides (g/100 g)"]) || 0) * quantity/100;
+            macroData.Calories += (parseFloat(matchingRow["Energie, Règlement UE N° 1169/2011 (kcal/100 g)"]) || O) * quantity/100
+            macroData.Glucides += (parseFloat(matchingRow["Glucides (g/100 g)"]) || 0) * quantity/100;
+            macroData.Proteines += (parseFloat(matchingRow["Protéines, N x facteur de Jones (g/100 g)"]) || 0) * quantity/100;
+            macroData.Lipides += (parseFloat(matchingRow["Lipides (g/100 g)"]) || 0) * quantity/100;
         }
     }
 
@@ -528,49 +557,103 @@ function updateMacroData() {
 }
 
 
-function updateCaloriesViz(totalCalories, eatenCalories, macroData) {
+function updateCaloriesViz(totalCalories, macroData) {
 
     const progressGroup = d3.select("#CalorieCountG").select("g");
 
     // Update Progress Circle
     const radius = 70;
     const circumference = 2 * Math.PI * radius;
-    const progressCircle = progressGroup.select("circle:nth-child(2)"); // Progress circle
-    const progressPercentage = eatenCalories / totalCalories;
+    const progressCircle = progressGroup.select("#progressCircle");// Progress circle
+    const progressPercentage = Math.min(1, macroData.Calories / totalCalories);
     const dashOffset = circumference * (1 - progressPercentage);
 
-    progressCircle
-        .transition()
-        .duration(1000)
-        .attr("stroke-dashoffset", dashOffset);
-
-    // Update Calories Text
-    progressGroup.select("text:nth-child(3)") // Text showing kcal
-        .text(`${eatenCalories} kcal`);
-        
-
-    // Update Macro Nutrient Bars
-    const macroGroup = d3.select("#CalorieCountG").select("g:nth-child(2)");
-
-    const macros = Object.entries(macroData);
-    
-    // Select all existing bars and bind new data
-    const bars = macroGroup.selectAll("g")
-        .data(macros, d => d[0]); // Use macro name as key for binding
-    
-    // Update existing bars
-    bars.each(function ([name, percentage], i) {
-        const bar = d3.select(this);
-        bar.select("rect:nth-child(2)") // Progress bar
+    console.log(progressPercentage)
+    if (macroData.Calories > 1.1 * totalCalories ) {
+        // Shift to red when the percentage is above 100%. We eat too much calories
+        progressCircle
+            .attr("stroke", "#FF6262") // Change stroke to red
             .transition()
             .duration(1000)
-            .attr("width", percentage * 200); // Assuming 200px max width for bars
+            .attr("stroke-dashoffset", 0); // Set dashOffset to 0 for full circle
+    }
+    else if (macroData.Calories < 0.8 * totalCalories){
+        progressCircle
+            .attr("stroke", "#FF6262") // Reset to original color
+            .transition()
+            .duration(1000)
+            .attr("stroke-dashoffset", dashOffset); // Update the progress based on percentage
+    }
+    else {
+        progressCircle
+        .attr("stroke", "#52E08D") // Reset to original color
+        .transition()
+        .duration(1000)
+        .attr("stroke-dashoffset", dashOffset); // Update the progress based on percentage
+    }
 
-        bar.select("text:nth-child(3)") // Percentage text
-            .text(`${Math.round(percentage * 100)}%`);
-    });
+    // Update Calories Text
+    progressGroup.select("#CaloriesCount") // Text showing kcal
+        .text(`${macroData.Calories} kcal`);
+    
 
-    // Handle cases where new bars might need to be added
-    const newBars = bars.enter().append("g");
-    // Add new elements here if required
-}
+
+    // Update Macro Bars and Percentages
+    const barsGroup = d3.select("#barsGroup");
+    const percentGroup = d3.select("#percentGroup");
+
+    // We get rid of the calorie line
+    const macros = Object.entries(macroData).slice(1);
+
+    // Define the total macros for calculation. Just a reference. 
+    const total_Carbs = 325;
+    const total_Protein = 100;
+    const total_Fats = 90;
+
+    macros.forEach((macro, i) => {
+        const [name, value] = macro;
+        const yOffset = i * 50; // Vertical position for each bar
+
+        // Set the progress bar width based on macro value
+        let maxMacroValue = 0;
+        if (name === 'Glucides') {
+            maxMacroValue = total_Carbs;
+        } else if (name === 'Proteines') {
+            maxMacroValue = total_Protein;
+        } else if (name === 'Lipides') {
+            maxMacroValue = total_Fats;
+        }
+
+        // Calculate the width of the progress bar based on percentage
+        const progressWidth = Math.min(200,(value / maxMacroValue) * 200); // max width 200px
+
+        if (value >= 1.3 * maxMacroValue){
+            barsGroup.selectAll("rect")
+            .filter((d, index) => index === i)
+            .attr("fill", "#FF6262")
+            .transition()
+            .duration(1000)
+            .attr("width", progressWidth);
+        }
+        else {
+            // Update the progress bar width
+            barsGroup.selectAll("rect")
+            .filter((d, index) => index === i)
+            .attr("fill", "#52E08D")
+            .transition()
+            .duration(1000)
+            .attr("width", progressWidth);
+
+        }
+
+
+        // Update the percentage text
+        const percentage = ((value / maxMacroValue) * 100).toFixed(1);
+        percentGroup.selectAll("text")
+            .filter((d, index) => index === i)
+            .transition()
+            .duration(1000)
+            .text(`${percentage}%`);
+    })
+
+};
