@@ -15,7 +15,7 @@ body {
     position: relative; /* Establish a positioning context for children */
     width: 100%;
     max-width: 400px;
-    margin: 20px auto; /* Center the container horizontally */
+    margin: 20px 0; /* Center the container horizontally */
     display: flex;
     gap: 10px;
     align-items: center;
@@ -27,7 +27,7 @@ body {
     padding: 10px;
     font-size: 16px;
     border: 1px solid #ccc;
-    border-radius: 5px;
+    border-radius: 12px;
 }
 
 /* Style for the Add button */
@@ -37,7 +37,7 @@ body {
     color: #fff;
     background-color: #4CAF50;
     border: none;
-    border-radius: 5px;
+    border-radius: 12px;
     cursor: pointer;
 }
 
@@ -45,17 +45,43 @@ body {
     background-color: #45a049;
 }
 
+
+
+/* The list of food item suggested when searching an item*/
 #autocomplete-list {
     position: absolute; /* Position relative to the parent container */
     top: 100%; /* Place it just below the input field */
     left: 0; /* Align with the input field */
     width: 100%; /* Match the width of the input field */
-    background-color: #fff;
+    background-color: #1F2336;
     z-index: 10;
     max-height: 200px;
     overflow-y: auto;
-    border-radius: 5px;
+    border-radius: 12px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Optional: add shadow for visibility */
+}
+
+/* Style the scrollbar track */
+#autocomplete-list::-webkit-scrollbar-track {
+    background: #f1f1f1; /* Light gray background */
+    border-radius: 12px; /* Rounded corners */
+}
+
+/* Style the scrollbar thumb */
+#autocomplete-list::-webkit-scrollbar-thumb {
+    background: #888; /* Darker gray for the scrollbar thumb */
+    border-radius: 12px; /* Rounded corners */
+}
+
+/* Style the scrollbar thumb when hovered */
+#autocomplete-list::-webkit-scrollbar-thumb:hover {
+    background: #555; /* Slightly darker gray on hover */
+}
+
+/* Style the scrollbar container */
+#autocomplete-list::-webkit-scrollbar {
+    width: 12px; /* Width of the vertical scrollbar */
+    height: 10px; /* Height of the horizontal scrollbar, if needed */
 }
 
 #autocomplete-list div:hover {
@@ -71,6 +97,7 @@ body {
     background-color: #f0f0f0;
 }
 
+
 /* Style for the item list */
 #itemsList {
     margin-top: 20px;
@@ -79,6 +106,7 @@ body {
 #itemsList h3 {
     margin-bottom: 10px;
 }
+
 
 #selectedItemsList {
     list-style: none;
@@ -89,10 +117,76 @@ body {
     font-size: 16px;
 }
 
-body {
-    background-color: #1E1E1E; /* Example: Dark gray */
+
+/* Color of the background*/ 
+html, body {
+    margin: 0; /* Remove default margins */
+    padding: 100; /* Remove default padding */
+    width: 100%; /* Ensure full width */
+    height: 100%; /* Ensure full height */
+    background-color: #1F2336; /* Dark background */
 }
 
+#main {
+    min-height: 100%; /* Ensure the container also grows with content */
+    background-color: #1F2336; /* Same as body for seamless appearance */
+}
+
+/* Just for the overall appearance as I prefer a dark mode*/
 .white-text {
 color: white;
 }
+
+
+/* Remove button available ot the element of the list of food items*/
+.remove-btn {
+    margin-left: 10px;
+    color: whitesmoke;
+    background: none;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+/* The cell where we enter the quantity in grams of a food item */
+#quantityInput {
+    padding: 5px; /* Add some padding for better usability */
+    border-radius: 12px; /* Round the corners */
+    font-size: 16px; /* Adjust font size */
+}
+
+
+
+/* Style for the sidebar */
+#sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 450px; /* Set the width of the sidebar */
+    height: 100%; /* Make it full height */
+    background-color: #2D2C52; /* Use the color you provided */
+    color: white;
+    padding:10
+}
+
+
+
+/*
+List of color than could be interesting to work with for a light theme:
+white : 255,255,255
+pale salmon : 249,244,241
+apple green : 195,230,110
+orange : 255,161,87
+yellow : 255,203,101
+*/
+
+/*
+colors for a dark theme
+
+Background (RGB: 31, 35, 54) → #1F2336
+Lighter Grey (RGB: 37, 42, 61) → #252A3D
+Green (RGB: 82, 224, 173) → #52E08D
+Blue (RGB: 116, 166, 254) → #74A6FE
+Red (RGB: 255, 98, 98) → #FF6262
+Border (RGB: 47, 50, 58) → #2F323A
+
+*/
