@@ -12,26 +12,33 @@
 
 <body onload="createViz();">
     <div id="main">
-        <div class="autocomplete-container">
-            <input 
-                type="text" 
-                id="myInput" 
-                placeholder="Rechercher un aliment..." 
-                oninput="filterSuggestions()"
-            >
-            <button id="addButton" onclick="addToList()">Add to List</button>
-            <div id="autocomplete-list"></div>
-        </div>
-        <div id="itemsList">
-            <div>
-                <label for="quantityInput" class="white-text">Quantité (en grammes): </label>
-                <input type="number" id="quantityInput" placeholder="e.g., 100" />
+        <div id="sidebar">
+
+            <div class="autocomplete-container">
+                <input 
+                    type="text" 
+                    id="myInput" 
+                    placeholder="Rechercher un aliment..." 
+                    oninput="filterSuggestions()"
+                >
+                <button id="addButton" onclick="addToList()">Add to List</button>
+                <div id="autocomplete-list"></div>
             </div>
-            <h3 class="white-text">Liste d'aliment</h3>
-            <ul id="selectedItemsList">
-                <!-- The selected items and quantities will appear here -->
-            </ul>
+
+            <div id="itemsList">
+                <div>
+                    <label for="quantityInput" class="white-text">Quantité (en grammes): </label>
+                    <input type="number" id="quantityInput" placeholder="e.g., 100" />
+                </div>
+                <h3 class="white-text">Liste d'aliment</h3>
+                <ul id="selectedItemsList">
+                    <!-- The selected items and quantities will appear here -->
+                </ul>
+            </div>
+
         </div>
+
     </div>
+    
 </body>
 </html>
