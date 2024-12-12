@@ -1,5 +1,5 @@
 const ctx = {
-    w: 1200,
+    w: 1800,
     h: 900,
     GREY_NULL: "#333",
     DOUBLE_CLICK_THRESHOLD: 320,
@@ -9,6 +9,11 @@ const ctx = {
 const FOOD_CATEGORIES = ["fruits, légumes, légumineuses et oléagineux", "produits céréaliers", "viandes, œufs, poissons et assimilés", "produits laitiers et assimilés", "eaux et autres boissons", "matières grasses", "aides culinaires et ingrédients divers"];
 const FOOD_ITEMS = [];
 let transformedData =[];
+let macroData = {
+    Carbohydrates: 0,
+    Proteins: 0,
+    Fats: 0
+};
 
 
 const macro_nutrients = [
@@ -62,17 +67,25 @@ const autocompleteList = document.getElementById("autocomplete-list");
  */
 function createViz() {
     console.log("Using D3 v" + d3.version);
-    let svgEl = d3.select("#main").append("svg").attr("id", "mainSVG");
+    let svgEl = d3.select("#main").append("svg").attr("id", "mainSVG")
+    .style("position", "relative") // Set absolute positioning
+    .style("left", "450px")
+    .style("top", "0px");
     svgEl.attr("width", ctx.w);
-    svgEl.attr("height", ctx.h * 2);
+    svgEl.attr("height", ctx.h);
     svgEl.append("svg").attr("id", "CardSVG");
 
     // Create empty cards with zero values initially
-    createCard(null, "Macro-Nutriments", 5, 15);
-    createCard(null, "Micro-Nutriments", 5 + 320, 15);
-    createCard(null, "Vitamines", 5 + 640, 15);
+    createCard(null, "Macro-Nutriments", 40, 15);
+    createCard(null, "Micro-Nutriments", 40 + 320, 15);
+    createCard(null, "Vitamines", 40 + 640, 15);
 
     loadData();
+    
+    const totalCalories = 2600;
+    const eatenCalories = 2000;
+
+    createCaloriesViz(totalCalories, eatenCalories, macroData);
 }
 
 
@@ -88,10 +101,7 @@ function loadData() {
     d3.csv("data/food_table_new.csv")
         .then(function (data) {
             // Preprocess and pass transformed data
-            transformedData = ProcessData(data)
-            // createSVGcard(5,5)
-            // createSVGcard(310,5)
-            ;
+            transformedData = ProcessData(data);
         })
         .catch(function (error) {
             console.error("Error loading data:", error);
@@ -186,8 +196,8 @@ function createCard(item, category, x, y) {
         .attr("height", 490)
         .attr("rx", 10)
         .attr("ry", 10)
-        .style("fill", "#323233")
-        .style("stroke", "white")
+        .style("fill", "#2D2C52")
+        .style("stroke", "#2F323A")
         .style("stroke-width", "2");
 
     // Card title
@@ -216,13 +226,17 @@ function createCard(item, category, x, y) {
             const barWidth = Math.min(280, 280 * (value / max)); // This will be 0 since value is 0
             const yOffset = 90 + index * 50; // Position each nutrient block vertically
 
+            // Extract the unit from the key (µg or mg)
+            const unit = nutrient.key.match(/\(([^)]+)\)/);
+            const nutrientUnit = unit ? unit[1] : "test";
+
             // Add nutrient text (name and zero value)
             myCard.append("text")
                 .attr("x", 10)
                 .attr("y", yOffset)
                 .style("font-size", "12px")
                 .style("fill", "white")
-                .text(`${nutrient.name}: ${value} ${nutrient.key.includes("(g/100 g)") ? "g" : "kcal"}`);
+                .text(`${nutrient.name}: ${value} ${nutrientUnit}`);
 
             // Add nutrient bar (will be width 0)
             myCard.append("rect")
@@ -230,12 +244,16 @@ function createCard(item, category, x, y) {
                 .attr("y", yOffset + 10)
                 .attr("width", barWidth)
                 .attr("height", 10)
+                .attr("rx", 5) // Horizontal corner radius
+                .attr("ry", 5) // Vertical corner radius
                 .style("fill", "#4CAF50") // Green color for the bar
                 .style("stroke", "#333")
                 .style("stroke-width", "1");
         });
     }
 }
+
+
 
 // Array to hold the list of selected items with their quantities
 let selectedItems = [];
@@ -248,25 +266,23 @@ function addToList() {
 
     // Check if both the item and quantity are selected
     if (selectedItem && quantity) {
-        // Create a new list item for the selected item and quantity
-        const listItem = document.createElement("li");
-        
-        // Set the text of the list item to the selected item and quantity
-        listItem.textContent = `${selectedItem} - ${quantity} grams`;
+        // add the element to the list of selected items with its quantity
+        let newItem = { foodItem: selectedItem, quantity: quantity };
+        selectedItems.push(newItem)
 
-        listItem.classList.add('white-text');
+        displaySelectedItems();
+        updateMacroData();
+        updateCaloriesViz(2600, 1500, macroData);
 
-        // Append the new list item to the selectedItemsList UL
-        document.getElementById("selectedItemsList").appendChild(listItem);
 
-        // Optionally, clear the input fields after adding the item to the list
-        document.getElementById("myInput").value = '';
-        document.getElementById("quantityInput").value = '';
     } else {
         // Optionally, show an alert or error message if the input is invalid
         alert("Please enter a valid food item and quantity.");
     }
+    console.log("selectedItems :", selectedItems)
 }
+
+
 
 
 // Function to display the selected items and their quantities
@@ -280,25 +296,32 @@ function displaySelectedItems() {
     selectedItems.forEach(item => {
         const listItem = document.createElement('li');
         listItem.textContent = `${item.foodItem}: ${item.quantity} grams`;
-        
-        // Optionally, add a remove button for each item
+        listItem.classList.add('white-text');
+        // create a remove button
         const removeButton = document.createElement('button');
-        removeButton.textContent = 'Remove';
+        removeButton.textContent = `x`;
+        removeButton.className = 'remove-btn';
         removeButton.onclick = () => removeItem(item.foodItem);
+
         listItem.appendChild(removeButton);
 
         selectedItemsList.appendChild(listItem);
     });
+    
 }
+
+
 
 // Function to remove an item from the list
 function removeItem(foodItem) {
     // Remove the item from the selectedItems array
     selectedItems = selectedItems.filter(item => item.foodItem !== foodItem);
-    
     // Update the list display
     displaySelectedItems();
 }
+
+
+
 
 function calculateMaxValues(dataset, nutrients) {
     // Calculate max values for each nutrient in the dataset
@@ -308,6 +331,9 @@ function calculateMaxValues(dataset, nutrients) {
     });
     return maxValues;
 }
+
+
+
 
 
 function updateCardValues(item, category) {
@@ -327,18 +353,23 @@ function updateCardValues(item, category) {
     } else if (category === "Vitamines") {
         nutrients = vitamins;
     }
+
     // Iterate over each nutrient and update the values
     nutrients.forEach((nutrient, index) => {
         const value = parseFloat(item[nutrient.key]) || 0; // Default to 0 if the value is missing
-        const max = (d3.max(transformedData, d => parseFloat(d[nutrient.key]) || 0) || 1)/3;
+        const max = (d3.max(transformedData, d => parseFloat(d[nutrient.key]) || 0) || 1) / 3; // Max value for bar scaling
         const barWidth = Math.min(280, 280 * (value / max)); // Bar width based on the value
 
         const yOffset = 90 + index * 50; // Position each nutrient block vertically
 
+        // Extract the unit from the key (µg or mg)
+        const unit = nutrient.key.match(/\(([^)]+)\)/);
+        const nutrientUnit = unit ? unit[1] : "unit"; // Extracted unit or default to "unit" if no match
+
         // Select the text and update its content
         cardGroup.selectAll("text")
             .filter(function (d, i) { return i !== 0 && i === index + 1; }) 
-            .text(`${nutrient.name}: ${value.toFixed(1)} ${nutrient.key.includes("(g/100 g)") ? "g" : "kcal"}`)
+            .text(`${nutrient.name}: ${value.toFixed(1)} ${nutrientUnit}`)
             .transition() // Apply transition to text
             .duration(1000)
             .style("fill", "white");
@@ -350,4 +381,196 @@ function updateCardValues(item, category) {
             .duration(1000)
             .attr("width", barWidth);
     });
+}
+
+
+
+
+
+
+function createCaloriesViz(totalCalories = 2600, eatenCalories = 0, macroData = {}) {
+
+    const mainG = d3.select("#mainSVG");
+    const CalorieCountG = mainG.append("g")
+        .attr("id", "CalorieCountG")
+        .attr("transform", "translate(1050, 15)")
+        .style("border-radius", "12px")
+        .style("overflow", "hidden");
+
+    // Add a background rectangle to the group
+    CalorieCountG.append("rect")
+        .attr("x", 0)
+        .attr("y", 0)
+        .attr("width", 600)
+        .attr("height", 300)
+        .attr("fill", "#2D2C52")
+        .attr("rx", 12) 
+        .attr("ry", 12);
+
+    // Circular Progress Bar
+    const radius = 70;
+    const circumference = 2 * Math.PI * radius;
+    const progressGroup = CalorieCountG.append("g")
+        .attr("transform", "translate(100, 150)");
+
+    // Background circle
+    progressGroup.append("circle")
+        .attr("r", radius)
+        .attr("stroke", "#e0e0e0")
+        .attr("stroke-width", 10)
+        .attr("fill", "none");
+
+    // Progress circle
+    const progressCircle = progressGroup.append("circle")
+        .attr("r", radius)
+        .attr("stroke", "#FF9800")
+        .attr("stroke-width", 10)
+        .attr("fill", "none")
+        .attr("stroke-dasharray", circumference)
+        .attr("stroke-dashoffset", circumference);
+
+    // Text in the center of the circle (Empty values)
+    progressGroup.append("text")
+        .attr("text-anchor", "middle")
+        .attr("dy", "0.35em")
+        .attr("fill", "#333")
+        .style("font-size", "16px")
+        .style("stroke", "white")
+        .text(`${eatenCalories} kcal`);
+
+    progressGroup.append("text")
+        .attr("text-anchor", "middle")
+        .attr("dy", "2em")
+        .attr("fill", "#666")
+        .style("font-size", "12px")
+        .style("stroke", "white")
+        .text("Calories consumed");
+
+    // Macro Nutrient Bars
+    const macroGroup = CalorieCountG.append("g")
+        .attr("transform", "translate(250, 100)");
+
+    const total_Carbs = 325;
+    const total_Protein = 100;
+    const total_Fats = 70;
+    const macros = Object.entries(macroData); // Empty data for now
+    macros.forEach((macro, i) => {
+        const [name, value] = macro;
+        const yOffset = i * 50;
+
+        // Macro title
+        macroGroup.append("text")
+            .attr("x", 0)
+            .attr("y", yOffset)
+            .attr("dy", "1em")
+            .style("font-size", "12px")
+            .style("fill", "#333")
+            .style("stroke", "white")
+            .text(name);
+
+
+        // Background bar
+        macroGroup.append("rect")
+            .attr("x", 100)
+            .attr("y", yOffset)
+            .attr("width", 200)
+            .attr("height", 10)
+            .attr("rx", 5)
+            .attr("ry", 5)
+            .attr("fill", "#e0e0e0");
+
+        // Progress bar (Empty for now)
+        macroGroup.append("rect")
+            .attr("x", 100)
+            .attr("y", yOffset)
+            .attr("width", 0) // Empty bar
+            .attr("height", 10)
+            .attr("fill", "#4CAF50")
+            .attr("rx", 5)
+            .attr("ry", 5);
+
+        // Percentage text (Empty for now)
+        macroGroup.append("text")
+            .attr("x", 310)
+            .attr("y", yOffset)
+            .attr("dy", "1em")
+            .style("font-size", "12px")
+            .style("fill", "#333")
+            .style("stroke", "white")
+            .text(`0%`);
+    });
+}
+
+
+
+// Function to update the macroData object based on the transformed data
+function updateMacroData() {
+    let macroData = {
+        Carbohydrates: 0,
+        Proteins: 0,
+        Fats: 0
+    };
+
+    selectedItems.forEach(selected =>{
+        const {foodItem,quantity} = selected;
+
+        const matchingRow = transformedData.find(item => item.alim_nom_fr == foodItem);
+
+        if (matchingRow){
+            macroData.Carbohydrates += (parseFloat(matchingRow["Glucides (g/100 g)"]) || 0) * quantity/100;
+            macroData.Proteins += (parseFloat(matchingRow["Protéines, N x facteur de Jones (g/100 g)"]) || 0) * quantity/100;
+            macroData.Fats += (parseFloat(matchingRow["Lipides (g/100 g)"]) || 0) * quantity/100;
+        }
+    }
+
+    )
+    console.log("Updated macro data:", macroData);
+}
+
+
+function updateCaloriesViz(totalCalories, eatenCalories, macroData) {
+
+    const progressGroup = d3.select("#CalorieCountG").select("g");
+
+    // Update Progress Circle
+    const radius = 70;
+    const circumference = 2 * Math.PI * radius;
+    const progressCircle = progressGroup.select("circle:nth-child(2)"); // Progress circle
+    const progressPercentage = eatenCalories / totalCalories;
+    const dashOffset = circumference * (1 - progressPercentage);
+
+    progressCircle
+        .transition()
+        .duration(1000)
+        .attr("stroke-dashoffset", dashOffset);
+
+    // Update Calories Text
+    progressGroup.select("text:nth-child(3)") // Text showing kcal
+        .text(`${eatenCalories} kcal`);
+        
+
+    // Update Macro Nutrient Bars
+    const macroGroup = d3.select("#CalorieCountG").select("g:nth-child(2)");
+
+    const macros = Object.entries(macroData);
+    
+    // Select all existing bars and bind new data
+    const bars = macroGroup.selectAll("g")
+        .data(macros, d => d[0]); // Use macro name as key for binding
+    
+    // Update existing bars
+    bars.each(function ([name, percentage], i) {
+        const bar = d3.select(this);
+        bar.select("rect:nth-child(2)") // Progress bar
+            .transition()
+            .duration(1000)
+            .attr("width", percentage * 200); // Assuming 200px max width for bars
+
+        bar.select("text:nth-child(3)") // Percentage text
+            .text(`${Math.round(percentage * 100)}%`);
+    });
+
+    // Handle cases where new bars might need to be added
+    const newBars = bars.enter().append("g");
+    // Add new elements here if required
 }
