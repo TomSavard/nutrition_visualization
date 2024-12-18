@@ -1,6 +1,7 @@
+//_________________________ definition of some global variables ______________________________________
 const ctx = {
     w: 1800,
-    h: 900,
+    h: 1200,
     GREY_NULL: "#333",
     DOUBLE_CLICK_THRESHOLD: 320,
 };
@@ -9,14 +10,46 @@ const ctx = {
 const FOOD_CATEGORIES = ["fruits, légumes, légumineuses et oléagineux", "produits céréaliers", "viandes, œufs, poissons et assimilés", "produits laitiers et assimilés", "eaux et autres boissons", "matières grasses", "aides culinaires et ingrédients divers"];
 const FOOD_ITEMS = [];
 let transformedData =[];
+
+
+// object to store the macro data of the selected iterm list
 let macroData = {
     Calories: 0,
     Glucides: 0,
     Proteines: 0,
     Lipides: 0
 };
+// object to store the vitamin data of the selected iterm list
+let vitaminData = [
+    { axis: "Beta-Carotène", value: 0 },
+    { axis: "Vitamine B1 (Thiamine)", value: 0 },
+    { axis: "Vitamine B5", value: 0 },
+    { axis: "Vitamine B6", value: 0 },
+    { axis: "Vitamine C", value: 0 },
+    { axis: "Vitamine D", value: 0 },
+    { axis: "Vitamine E", value: 0 },
+    { axis: "Vitamine K1", value: 0 }
+];
+// object to store the micro data of the selected iterm list
+let microData = [
+    { axis: "Calcium", value: 0 },
+    { axis: "Magnésium", value: 0 },
+    { axis: "Fer", value: 0 },
+    { axis: "Potassium", value: 0 },
+    { axis: "Zinc", value: 0 },
+    { axis: "Sélénium", value: 0 },
+    { axis: "Phosphore", value: 0 },
+    { axis: "Iode", value: 0 }
+];
 
 
+// Bubble chart. An other approach to update the chart.
+let updateChart;
+
+// Array to hold the list of selected items with their quantities
+let selectedItems = [];
+
+// Info for the mapping of macro
 const macro_nutrients = [
     { name: "Énergie", key: "Energie, Règlement UE N° 1169/2011 (kcal/100 g)", max: 200 },
     { name: "Lipides", key: "Lipides (g/100 g)", max: 50 },
@@ -27,7 +60,7 @@ const macro_nutrients = [
     { name: "Protéines", key: "Protéines, N x facteur de Jones (g/100 g)", max: 50 },
     { name: "Sel", key: "Sel chlorure de sodium (g/100 g)", max: 5 }
 ];
-
+// Info for the mapping of micro
 const micro_nutrients = [
     { name: "Calcium", key: "Calcium (mg/100 g)", max: 1200 },
     { name: "Magnésium", key: "Magnésium (mg/100 g)", max: 400 },
@@ -38,7 +71,7 @@ const micro_nutrients = [
     { name: "Phosphore", key: "Phosphore (mg/100 g)", max: 700 },
     { name: "Iode", key: "Iode (μg/100 g)", max: 150 }
 ];
-
+// Info for the mapping of vitamins
 const vitamins = [
     { name: "Beta-Carotène", key: "Beta-Carotène (µg/100 g)" },
     { name: "Vitamine B1 (Thiamine)", key: "Vitamine B1 ou Thiamine (mg/100 g)" },
@@ -51,9 +84,14 @@ const vitamins = [
 ];
 
 
+
 // Initialize references to the input field and autocomplete list
 const inputField = document.getElementById("myInput");
 const autocompleteList = document.getElementById("autocomplete-list");
+
+
+
+//_________________________ definition of functions ______________________________________
 
 
 
@@ -62,9 +100,17 @@ const autocompleteList = document.getElementById("autocomplete-list");
  * 
  * Creates the svg element
  * 
- * Calls CreateCard to have the empty cards
+ * Calls DisplayHeaders to display the 2 rectangles with the titles
+ * 
+ * Calls CreateCard 3 times to have an empty card for macro, micro and vitamins
  * 
  * Calls loadData(svgEl) to retrieve the database.
+ * 
+ * Calls createCalorieViz pour la visualization du total macro + calorie de la liste
+ * 
+ * Calls the radar chart for micro and vitamins
+ * 
+ * Calls the bubble chart
  */
 function createViz() {
     console.log("Using D3 v" + d3.version);
@@ -76,18 +122,85 @@ function createViz() {
     svgEl.attr("height", ctx.h);
     svgEl.append("svg").attr("id", "CardSVG");
 
-    // Create empty cards with zero values initially
-    createCard(null, "Macro-Nutriments", 40, 15);
-    createCard(null, "Micro-Nutriments", 40 + 320, 15);
-    createCard(null, "Vitamines", 40 + 640, 15);
+    DisplayHeaders();
 
+    // Create empty cards with zero values initially
+    createCard(null, "Macro-Nutriments", 20, 70);
+    createCard(null, "Micro-Nutriments", 20 + 320, 70);
+    createCard(null, "Vitamines", 20 + 640, 70);
+    
     loadData();
     
     const totalCalories = 2600;
-    const eatenCalories = 2000;
+    createCaloriesViz(totalCalories, macroData);
 
-    createCaloriesViz(totalCalories, eatenCalories, macroData);
-}
+    // dirty call but it is working
+    const testitem = {
+        "Calcium": 0,
+        "Magnésium": 0,
+        "Fer": 0,
+        "Potassium": 0,
+        "Zinc": 0,
+        "Sélénium": 0,
+        "Phosphore": 0,
+        "Iode": 0
+    };
+    createRadarChart({
+        id: "radarChartMicro",
+        x: 20,
+        y: 580,
+        width: 460,
+        height: 450,
+        title: "Macro-Nutriments",
+        attributes: [
+            { axis: "Calcium" },
+            { axis: "Magnésium" },
+            { axis: "Fer" },
+            { axis: "Potassium" },
+            { axis: "Zinc" },
+            { axis: "Sélénium" },
+            { axis: "Phosphore" },
+            { axis: "Iode" }
+        ],
+        item: testitem
+    });
+
+    const testitemVitamins = {
+        "Beta-Carotène": 0,
+        "Vitamine B1 (Thiamine)": 0,
+        "Vitamine B5": 0,
+        "Vitamine B6": 0,
+        "Vitamine C": 0,
+        "Vitamine D": 0,
+        "Vitamine E": 0,
+        "Vitamine K1": 0
+    };
+    createRadarChart({
+        id: "radarChartVitamins",
+        x: 500,
+        y: 580,
+        width: 460,
+        height: 450,
+        title: "Vitamines",
+        attributes: [
+            { axis: "Beta-Carotène" },
+            { axis: "Vitamine B1 (Thiamine)" },
+            { axis: "Vitamine B5" },
+            { axis: "Vitamine B6" },
+            { axis: "Vitamine C" },
+            { axis: "Vitamine D" },
+            { axis: "Vitamine E" },
+            { axis: "Vitamine K1" }
+        ],
+        item: testitemVitamins
+    });
+
+
+    updateChart = createBubbleChart(macroData, vitaminData, microData);
+
+};
+
+
 
 
 
@@ -97,6 +210,8 @@ function createViz() {
  * Accesses the data from "data/food_table_new.csv"
  * 
  * Calls ProcessData(data) for specific extraction and processing
+ * 
+ * The data is stored inside the global variable transformedData
  */
 function loadData() {
     d3.csv("data/food_table_new.csv")
@@ -112,12 +227,14 @@ function loadData() {
 
 
 
+
+
 /**
  * Called by loadData()
  * 
  * @param {*} data contains the raw data that needs to be processed to be ready to use.
  * 
- * @returns filteredData which contains the data with the desired format ready for use.
+ * @returns filteredData which contains the data with the desired format ready for use. In particular we extract only some categories of food
  */
 function ProcessData(data) {
     console.log("Column headers:", data.columns);
@@ -136,12 +253,16 @@ function ProcessData(data) {
 
 
 
+
+
 /**
  * called by the HTML when the search bar is used.
  * 
  * updates the selected item and modify the display by calling updateCardValues(item,category)
  * 
- * calls updateCardValues(item,category)
+ * calls updateCardValues(item,category) for macro, micro and vitamins
+ * 
+ * calls updateRadarChartWithData for micro and vitamins 
  */
 function filterSuggestions() {
     const query = inputField.value.toLowerCase();
@@ -164,6 +285,8 @@ function filterSuggestions() {
                 updateCardValues(item,"Macro-Nutriments");
                 updateCardValues(item,"Micro-Nutriments");
                 updateCardValues(item,"Vitamines");
+                updateRadarChartWithData(item,"radarChartMicro", "Micro-Nutriments");
+                updateRadarChartWithData(item,"radarChartVitamins", "Vitamins");
             });
 
             autocompleteList.appendChild(suggestionDiv);
@@ -173,6 +296,14 @@ function filterSuggestions() {
 
 
 
+
+
+
+/**
+ * Called by the HTML when there is a click.
+ * 
+ * Clears the suggestion bar
+ */
 document.addEventListener("click", (event) => {
     if (event.target !== inputField) {
         autocompleteList.innerHTML = "";
@@ -183,6 +314,82 @@ document.addEventListener("click", (event) => {
 
 
 
+
+/**
+ * Called by createViz
+ * 
+ * Displays the two top rectangles with their title.
+ */
+function DisplayHeaders(){
+    // we select our main svg
+    const mainG = d3.select("#mainSVG");
+
+    // then we populate it with a new Group which we place
+    const headerG = mainG.append("svg")
+        .attr("id", "headerG")
+        .attr("x", 20)   // Horizontal position
+        .attr("y", 0)   // Vertical position
+        .style("border-radius", "12px")
+        .style("overflow", "hidden"); // Pour la gestion des débordements
+
+
+    // We add a rectanlge for the background of the group
+    headerG.append("rect")
+        .attr("x", 0)
+        .attr("y", 0)
+        .attr("width", 940)
+        .attr("height", 50)
+        .attr("fill", "#2D2C52")
+        .attr("rx", 12) 
+        .attr("ry", 12)
+        .append("text");
+    // same for the other title
+    headerG.append("rect")
+        .attr("x", 1020)
+        .attr("y", 0)
+        .attr("width", 600)
+        .attr("height", 50)
+        .attr("fill", "#2D2C52")
+        .attr("rx", 12) 
+        .attr("ry", 12);
+
+    // Add title text on top of the left rect
+    headerG.append("text")
+    .attr("x", 470)  // Horizontal position of the title
+    .attr("y", 35)   // Vertical position
+    .attr("text-anchor", "middle")  // Center the text horizontally
+    .style("font-size", "22px")
+    .style("font-weight", "bold")
+    .style("fill", "#FFF")
+    .style("stroke", "white")
+    .text("Valeur nutritionelle de l'aliment sélectionné");
+
+    // Add title text on top of the right rect
+    headerG.append("text")
+    .attr("x", 1320)  // Horizontal position of the title
+    .attr("y", 35)   // Vertical position
+    .attr("text-anchor", "middle")  // Center the text horizontally
+    .style("font-size", "22px")
+    .style("font-weight", "bold")
+    .style("fill", "#FFF") 
+    .style("stroke", "white")  
+    .text("Valeur nutritionelle globale du repas");
+}
+
+
+
+
+
+
+/**
+ * 
+ * @param {*} item : au final on ne donne que la value null car on utilise une autre fonction pour la maj
+ * @param {*} category : Macro-Nutriments, Micro-Nutriments ou Vitamines. Allows to select the correct attributes and names
+ * @param {*} x : x position of the top left corner
+ * @param {*} y : y position of the top left corner
+ * 
+ * It creates the 3 empty cars (macro, micro, vitamins)
+ */
 function createCard(item, category, x, y) {
     const CardSVG = d3.select("#CardSVG");
     const myCard = CardSVG.append("g")
@@ -256,88 +463,12 @@ function createCard(item, category, x, y) {
 
 
 
-// Array to hold the list of selected items with their quantities
-let selectedItems = [];
-
-// This function gets called when the "Add to List" button is clicked
-function addToList() {
-    // Get the value of the selected item and quantity
-    const selectedItem = document.getElementById("myInput").value;
-    const quantity = document.getElementById("quantityInput").value;
-
-    // Check if both the item and quantity are selected
-    if (selectedItem && quantity) {
-        // add the element to the list of selected items with its quantity
-        let newItem = { foodItem: selectedItem, quantity: quantity };
-        selectedItems.push(newItem)
-
-        displaySelectedItems();
-
-
-    } else {
-        // Optionally, show an alert or error message if the input is invalid
-        alert("Please enter a valid food item and quantity.");
-    }
-    console.log("selectedItems :", selectedItems)
-}
-
-
-
-
-// Function to display the selected items and their quantities
-function displaySelectedItems() {
-    const selectedItemsList = document.getElementById('selectedItemsList');
-    
-    // Clear the current list
-    selectedItemsList.innerHTML = '';
-
-    // Loop through the selected items and display each one
-    selectedItems.forEach(item => {
-        const listItem = document.createElement('li');
-        listItem.textContent = `${item.foodItem}: ${item.quantity} grams`;
-        listItem.classList.add('white-text');
-        // create a remove button
-        const removeButton = document.createElement('button');
-        removeButton.textContent = `x`;
-        removeButton.className = 'remove-btn';
-        removeButton.onclick = () => removeItem(item.foodItem);
-
-        listItem.appendChild(removeButton);
-
-        selectedItemsList.appendChild(listItem);
-    });
-    updateMacroData();
-    updateCaloriesViz(2600, macroData);
-    
-}
-
-
-
-// Function to remove an item from the list
-function removeItem(foodItem) {
-    // Remove the item from the selectedItems array
-    selectedItems = selectedItems.filter(item => item.foodItem !== foodItem);
-    // Update the list display
-    displaySelectedItems();
-
-}
-
-
-
-
-function calculateMaxValues(dataset, nutrients) {
-    // Calculate max values for each nutrient in the dataset
-    const maxValues = {};
-    nutrients.forEach(nutrient => {
-        maxValues[nutrient.key] = d3.max(dataset, d => parseFloat(d[nutrient.key]) || 0);
-    });
-    return maxValues;
-}
-
-
-
-
-
+/**
+ * 
+ * @param {*} item : reference to the food item selected
+ * @param {*} category : what type of attribute do we want (macro, mirco or vitamin)
+ * @returns nothing, simply update the display of the cards by transitionning the values
+ */
 function updateCardValues(item, category) {
     const cardGroup = d3.select(`#${category}`);
 
@@ -390,14 +521,244 @@ function updateCardValues(item, category) {
 
 
 
-function createCaloriesViz(totalCalories = 2600, eatenCalories = 0, macroData = {}) {
+
+
+/**
+ * called by the HTML when the add button is clicked on.
+ * 
+ * extracts the item and the quantity
+ * 
+ * calls displaySelectedItems to show it's nutritional values
+ */
+function addToList() {
+    // Get the value of the selected item and quantity
+    const selectedItem = document.getElementById("myInput").value;
+    const quantity = document.getElementById("quantityInput").value;
+
+    // Check if both the item and quantity are selected
+    if (selectedItem && quantity) {
+        // add the element to the list of selected items with its quantity
+        let newItem = { foodItem: selectedItem, quantity: quantity };
+        selectedItems.push(newItem)
+
+        displaySelectedItems();
+
+
+    } else {
+        // Optionally, show an alert or error message if the input is invalid
+        alert("Please enter a valid food item and quantity.");
+    }
+    console.log("selectedItems :", selectedItems)
+}
+
+
+
+/**
+ * called by addToList
+ * 
+ * after the adding of the item, we recompute the values for the total list of item
+ * 
+ * Calls updateMacroData, updateMicroData and updateVitaminsData
+ * 
+ * also calls updateCaloriesViz and updateChart.
+ */
+function displaySelectedItems() {
+    const selectedItemsList = document.getElementById('selectedItemsList');
+    
+    // Clear the current list
+    selectedItemsList.innerHTML = '';
+
+    // Loop through the selected items and display each one
+    selectedItems.forEach(item => {
+        const listItem = document.createElement('li');
+        listItem.textContent = `${item.foodItem}: ${item.quantity} grams`;
+        listItem.classList.add('white-text');
+        // create a remove button
+        const removeButton = document.createElement('button');
+        removeButton.textContent = `x`;
+        removeButton.className = 'remove-btn';
+        removeButton.onclick = () => removeItem(item.foodItem);
+
+        listItem.appendChild(removeButton);
+
+        selectedItemsList.appendChild(listItem);
+    });
+    updateMacroData();
+    microData = updateMicroData();
+    vitaminData = updateVitaminsData();
+    updateCaloriesViz(2600, macroData);
+    updateChart(macroData, vitaminData, microData);
+
+    
+}
+
+
+
+/**
+ * called by the displaySelectedItems only when the cross button is clicked
+ * 
+ * @param {*} foodItem : reference to the item selected
+ * 
+ * removes the food item from the list 
+ * 
+ * calls displaySelectedItems 
+ */
+function removeItem(foodItem) {
+    // Remove the item from the selectedItems array
+    selectedItems = selectedItems.filter(item => item.foodItem !== foodItem);
+    // Update the list display
+    displaySelectedItems();
+}
+
+
+
+
+
+/**
+ * Fonction utilitaire utilisé pour le prétraitement du dataset et le choix des échelles de valeur
+ */
+function calculateMaxValues(dataset, nutrients) {
+    // Calculate max values for each nutrient in the dataset
+    const maxValues = {};
+    nutrients.forEach(nutrient => {
+        maxValues[nutrient.key] = d3.max(dataset, d => parseFloat(d[nutrient.key]) || 0);
+    });
+    return maxValues;
+}
+
+
+
+
+
+
+/**
+ * called by displaySelectedItems
+ * 
+ * updates the the global variable macroData based on the global variable selectedItems. Selected items contains the name and quantity. The data is then retrieved from transformed data 
+ */
+function updateMacroData() {
+    macroData = {
+        Calories: 0,
+        Glucides: 0,
+        Proteines: 0,
+        Lipides: 0
+    };
+
+    selectedItems.forEach(selected =>{
+        const {foodItem,quantity} = selected;
+
+        const matchingRow = transformedData.find(item => item.alim_nom_fr == foodItem);
+
+        if (matchingRow){
+            macroData.Calories += (parseFloat(matchingRow["Energie, Règlement UE N° 1169/2011 (kcal/100 g)"]) || O) * quantity/100
+            macroData.Glucides += (parseFloat(matchingRow["Glucides (g/100 g)"]) || 0) * quantity/100;
+            macroData.Proteines += (parseFloat(matchingRow["Protéines, N x facteur de Jones (g/100 g)"]) || 0) * quantity/100;
+            macroData.Lipides += (parseFloat(matchingRow["Lipides (g/100 g)"]) || 0) * quantity/100;
+        }
+    }
+
+    )
+    console.log("Updated macro data:", macroData);
+}
+
+
+/**
+ * called by displaySelectedItems
+ * 
+ * updates the the global variable microData based on the global variable selectedItems. Selected items contains the name and quantity. The data is then retrieved from transformed data 
+ */
+function updateMicroData() {
+    // Initialize the microData object
+    const microData = {
+        Calcium: 0,
+        Magnésium: 0,
+        Fer: 0,
+        Potassium: 0,
+        Zinc: 0,
+        Sélénium: 0,
+        Phosphore: 0,
+        Iode: 0
+    };
+
+    // Loop through selected items and calculate totals
+    selectedItems.forEach(selected => {
+        const { foodItem, quantity } = selected;
+
+        // Find matching row in transformedData
+        const matchingRow = transformedData.find(item => item.alim_nom_fr == foodItem);
+
+        if (matchingRow) {
+            // Update micro-nutrient totals
+            micro_nutrients.forEach(nutrient => {
+                const value = parseFloat(matchingRow[nutrient.key]) || 0;
+                microData[nutrient.name] += (value * quantity) / 100;
+            });
+        }
+    });
+
+    console.log("Updated micro data:", microData);
+    return microData;
+}
+
+
+/**
+ * called by displaySelectedItems
+ * 
+ * updates the the global variable vitaminsData based on the global variable selectedItems. Selected items contains the name and quantity. The data is then retrieved from transformed data 
+ */
+function updateVitaminsData() {
+    // Initialize the vitaminsData object
+    const vitaminsData = {
+        "Beta-Carotène": 0,
+        "Vitamine B1 (Thiamine)": 0,
+        "Vitamine B5": 0,
+        "Vitamine B6": 0,
+        "Vitamine C": 0,
+        "Vitamine D": 0,
+        "Vitamine E": 0,
+        "Vitamine K1": 0
+    };
+
+    // Loop through selected items and calculate totals
+    selectedItems.forEach(selected => {
+        const { foodItem, quantity } = selected;
+
+        // Find matching row in transformedData
+        const matchingRow = transformedData.find(item => item.alim_nom_fr == foodItem);
+
+        if (matchingRow) {
+            // Update vitamin totals
+            vitamins.forEach(vitamin => {
+                const value = parseFloat(matchingRow[vitamin.key]) || 0;
+                vitaminsData[vitamin.name] += (value * quantity) / 100;
+            });
+        }
+    });
+
+    console.log("Updated vitamins data:", vitaminsData);
+    return vitaminsData;
+}
+
+
+
+
+
+
+
+/**
+ * called by createViz
+ * 
+ * @param {*} totalCalories : goal amount of calories to be eaten in a day
+ * @param {*} macroData : just the categories + instanced at 0
+ */
+function createCaloriesViz(totalCalories = 2600, macroData = {}) {
     // we select our main svg
     const mainG = d3.select("#mainSVG");
 
     // then we populate it with a new Group which we place
     const CalorieCountG = mainG.append("g")
         .attr("id", "CalorieCountG")
-        .attr("transform", "translate(1050, 15)")
+        .attr("transform", "translate(1040, 70)")
         .style("border-radius", "12px")
         .style("overflow", "hidden");
 
@@ -530,33 +891,11 @@ function createCaloriesViz(totalCalories = 2600, eatenCalories = 0, macroData = 
 
 
 
-// Function to update the macroData object based on the transformed data
-function updateMacroData() {
-    macroData = {
-        Calories: 0,
-        Glucides: 0,
-        Proteines: 0,
-        Lipides: 0
-    };
-
-    selectedItems.forEach(selected =>{
-        const {foodItem,quantity} = selected;
-
-        const matchingRow = transformedData.find(item => item.alim_nom_fr == foodItem);
-
-        if (matchingRow){
-            macroData.Calories += (parseFloat(matchingRow["Energie, Règlement UE N° 1169/2011 (kcal/100 g)"]) || O) * quantity/100
-            macroData.Glucides += (parseFloat(matchingRow["Glucides (g/100 g)"]) || 0) * quantity/100;
-            macroData.Proteines += (parseFloat(matchingRow["Protéines, N x facteur de Jones (g/100 g)"]) || 0) * quantity/100;
-            macroData.Lipides += (parseFloat(matchingRow["Lipides (g/100 g)"]) || 0) * quantity/100;
-        }
-    }
-
-    )
-    console.log("Updated macro data:", macroData);
-}
-
-
+/**
+ * called by displaySelectedItems
+ * 
+ * updates the display of the calorie visualization based on the updated values of macroData
+ */
 function updateCaloriesViz(totalCalories, macroData) {
 
     const progressGroup = d3.select("#CalorieCountG").select("g");
@@ -657,3 +996,464 @@ function updateCaloriesViz(totalCalories, macroData) {
     })
 
 };
+
+
+
+
+
+
+/**
+ * Called by createViz
+ * 
+ * @param {*} param0 
+ * 
+ * Creates a radar chart
+ * 
+ */
+function createRadarChart({ id, x, y, width, height, title, attributes, item }) {
+    const mainG = d3.select("#mainSVG");
+
+    // Remove any existing radar chart with the same ID
+    mainG.select(`#${id}`).remove();
+
+    // Append a group for the radar chart
+    const radarChartG = mainG.append("g")
+        .attr("id", id)
+        .attr("transform", `translate(${x}, ${y})`);
+
+    // Add a background rectangle
+    radarChartG.append("rect")
+        .attr("x", 0)
+        .attr("y", 0)
+        .attr("width", width)
+        .attr("height", height)
+        .attr("fill", "#2D2C52")
+        .attr("rx", 12)
+        .attr("ry", 12);
+
+    // Add a title
+    radarChartG.append("text")
+        .attr("x", width / 2)
+        .attr("y", 30)
+        .attr("text-anchor", "middle")
+        .style("font-size", "22px")
+        .style("font-weight", "bold")
+        .style("fill", "#FFF")
+        .text(title);
+
+    // Radar chart setup
+    const radarRadius = Math.min(width, height) / 2 - 80;
+    const centerX = width / 2;
+    const centerY = height / 2 + 10;
+
+    // Number of attributes
+    const axisCount = attributes.length;
+    const angleSlice = (2 * Math.PI) / axisCount;
+
+    // Scale for values (0 to 1)
+    const valueScale = d3.scaleLinear()
+        .domain([0, 1])
+        .range([0, radarRadius]);
+
+    // Create the radar axes
+    const radarGroup = radarChartG.append("g")
+        .attr("transform", `translate(${centerX}, ${centerY})`);
+
+    // Draw the axes and labels
+    attributes.forEach((d, index) => {
+        const angle = angleSlice * index - Math.PI / 2;
+
+        // Draw axis lines
+        radarGroup.append("line")
+            .attr("x1", 0)
+            .attr("y1", 0)
+            .attr("x2", valueScale(1) * Math.cos(angle))
+            .attr("y2", valueScale(1) * Math.sin(angle))
+            .attr("stroke", "#FFF")
+            .attr("stroke-width", 1)
+            .attr("stroke-dasharray", "2,2");
+
+        // Add labels for each axis
+        radarGroup.append("text")
+            .attr("x", (valueScale(1) + 10) * Math.cos(angle))
+            .attr("y", (valueScale(1) + 10) * Math.sin(angle))
+            .attr("text-anchor", angle > Math.PI / 2 || angle < -Math.PI / 2 ? "end" : "start")
+            .attr("alignment-baseline", "middle")
+            .style("font-size", "12px")
+            .style("fill", "#FFF")
+            .text(d.axis);
+    });
+
+    // Create a smooth line generator for the radar polygon
+    const lineGenerator = d3.lineRadial()
+        .radius(d => valueScale(d.value))
+        .angle((d, i) => i * angleSlice);
+
+    // Prepare the radar data
+    const radarData = attributes.map(attribute => {
+        // Retrieve the value from the provided item
+        const value = item && item[attribute.axis] ? item[attribute.axis] : 0; // Default to 0 if no value found
+        return {
+            axis: attribute.axis,
+            value: value
+        };
+    });
+
+    // Create radar chart's polygon
+    radarGroup.append("path")
+        .attr("id","radarPath")
+        .datum(radarData)
+        .attr("fill", "#52E08D")
+        .attr("fill-opacity", 1)
+        .attr("stroke", "#52E08D")
+        .attr("stroke-width", 2)
+        .attr("d", lineGenerator);
+
+    // Draw circular grid lines
+    const gridLevels = 5; // Number of circular grid lines
+    for (let level = 1; level <= gridLevels; level++) {
+        radarGroup.append("circle")
+            .attr("r", valueScale(level / gridLevels))
+            .attr("fill", "none")
+            .attr("stroke", "#FFF")
+            .attr("stroke-opacity", 0.3);
+    }
+}
+
+
+/**
+ * called by filterSuggestions
+ * 
+ * @param {*} item : the item food selected
+ * @param {*} id : the id of the radarchart because we had conflict between charts
+ * @param {*} category : the category of the chart (micro or vitamins)
+ * 
+ * updates the dispaly of the radar chart based on the food item currently selected
+ */
+function updateRadarChartWithData(item, id, category) {
+    console.log(item);
+
+    // Radar chart setup (same as before)
+    const width = 460;
+    const height = 450;
+    const radarRadius = Math.min(width, height) / 2 - 80;
+    const axisCount = 8;
+    const angleSlice = (2 * Math.PI) / axisCount;
+
+    // Scale for values (0 to 1)
+    const valueScale = d3.scaleLinear()
+        .domain([0, 1])
+        .range([0, radarRadius]);
+
+    let nutrients = [];
+    let group = d3.select("#radarChartMicro")
+    let values = [
+        { axis: 'Calcium', value: 0 },
+        { axis: 'Magnésium', value: 0 },
+        { axis: 'Fer', value: 0 },
+        { axis: 'Potassium', value: 0 },
+        { axis: 'Zinc', value: 0 },
+        { axis: 'Sélénium', value: 0 },
+        { axis: 'Phosphore', value: 0 },
+        { axis: 'Iode', value: 0 }
+    ];
+
+    if (category === "Micro-Nutriments") {
+        nutrients = micro_nutrients;
+        group = d3.select("#radarChartMicro")
+        let values = [
+            { axis: 'Calcium', value: 0 },
+            { axis: 'Magnésium', value: 0 },
+            { axis: 'Fer', value: 0 },
+            { axis: 'Potassium', value: 0 },
+            { axis: 'Zinc', value: 0 },
+            { axis: 'Sélénium', value: 0 },
+            { axis: 'Phosphore', value: 0 },
+            { axis: 'Iode', value: 0 }
+        ];
+    }
+    else{
+        nutrients = vitamins;
+        group = d3.select("#radarChartVitamins")
+        let values = [
+            { axis: 'Beta-Carotène', value: 0 },
+            { axis: 'Vitamine B1 (Thiamine)', value: 0 },
+            { axis: 'Vitamine B5', value: 0 },
+            { axis: 'Vitamine B6', value: 0 },
+            { axis: 'Vitamine C', value: 0 },
+            { axis: 'Vitamine D', value: 0 },
+            { axis: 'Vitamine E', value: 0 },
+            { axis: 'Vitamine K1', value: 0 }
+        ];
+    }
+
+    nutrients.forEach((nutrient, index) => {
+        console.log(nutrient, index);
+        const value = parseFloat(item[nutrient.key]) || 0; // Default to 0 if the value is missing
+        const max = (d3.max(transformedData, d => parseFloat(d[nutrient.key]) || 0) || 1) / 3; // Max value for bar scaling
+        const normalizedValue = Math.min(1, (value / max) * 5); //! normalization to change but increased for better visibility
+        if (normalizedValue !== undefined) {
+            values[index].value = normalizedValue;  // Update the radarData value
+        }
+    });
+
+    console.log(values);
+
+    // Update the radar chart with the new values
+    const radarChartG = group.select(`#${category}`); // Select the radar chart group by category
+
+    // Update the path (the polygon) to represent the new values
+    const lineGenerator = d3.lineRadial()
+        .radius(d => valueScale(d.value))
+        .angle((d, i) => i * angleSlice);
+
+    // Check if the path exists, and if not, create it.
+    const path = group.select("#radarPath");
+    if (path.empty()) {
+        console.log("path not detected");
+        radarChartG.append("path")
+            .datum(values)
+            .attr("id", "radarPath") // Assign an ID for later reference
+            .attr("fill", "#52E08D")
+            .attr("fill-opacity", 0.6)
+            .attr("stroke", "#4CAF50")
+            .attr("stroke-width", 2)
+            .attr("d", lineGenerator);
+    } else {
+        console.log("path detected");
+        // If the path already exists, update it with a smooth transition.
+        path.datum(values)
+            .transition() // Apply smooth transition
+            .duration(1000)
+            .attr("d", lineGenerator); // Update the radar chart's polygon path
+    }
+
+}
+
+
+
+
+
+/**
+ * called by createViz
+ * 
+ * @param {*} macroData 
+ * @param {*} vitaminData 
+ * @param {*} microData 
+ * @returns : the update function to modify the display based on the items inside the list 
+ * 
+ * display an interactive bubble chart that can be updated.
+ * 
+ * The update is called in displaySelectedItems
+ */
+function createBubbleChart(macroData, vitaminData, microData) {
+    // Select the main SVG
+    const mainG = d3.select("#mainSVG");
+
+    // Create a new group for the bubble chart if not already created
+    const bubbleChart = mainG.select("#BubbleChart")
+        .empty() ? mainG.append("g")
+        .attr("id", "BubbleChart")
+        .attr("transform", "translate(1040, 390)") : mainG.select("#BubbleChart");
+
+    // Background rectangle
+    bubbleChart.append("rect")
+        .attr("x", 0)
+        .attr("y", 0)
+        .attr("width", 600)
+        .attr("height", 640)
+        .attr("fill", "#2D2C52")
+        .attr("rx", 12)
+        .attr("ry", 12);
+
+    // Add title
+    bubbleChart.append("text")
+        .attr("x", 300)
+        .attr("y", 50)
+        .attr("text-anchor", "middle")
+        .style("font-size", "22px")
+        .style("font-weight", "bold")
+        .style("fill", "#FFF")
+        .text("Dynamic Bubble Chart");
+
+    // Chart dimensions
+    const width = 600;
+    const height = 580;
+
+    // Combine all data into one array
+    const combinedData = [
+        ...Object.keys(macroData).map((key, index) => ({
+            id: `macro-${index + 1}`,
+            value: macroData[key],
+            label: key
+        })),
+        ...vitaminData.map((v, index) => ({
+            id: `vitamin-${index + 1}`,
+            value: v.value,
+            label: v.axis
+        })),
+        ...microData.map((m, index) => ({
+            id: `micro-${index + 1}`,
+            value: m.value,
+            label: m.axis
+        }))
+    ];
+
+    // Scale for bubble sizes
+    const sizeScale = d3.scaleSqrt()
+        .domain([0, d3.max(combinedData, d => d.value)])
+        .range([10, 50]); // Adjust size range as needed
+
+    // Create a force simulation
+    const simulation = d3.forceSimulation(combinedData)
+        .force("center", d3.forceCenter(width / 2, height / 2)) // Center force
+        .force("charge", d3.forceManyBody().strength(15))       // Attraction force (positive value attracts)
+        .force("collide", d3.forceCollide().radius(d => sizeScale(d.value) + 5).strength(0.7)) // Prevent overlap
+        .alpha(3) // Initial alpha value (higher means stronger forces initially)
+        .alphaDecay(0.001) // Slower decay keeps forces strong longer
+        .on("tick", ticked);
+
+    // Tooltip setup
+    const tooltip = d3.select("body").append("div")
+        .attr("class", "tooltip")
+        .style("position", "absolute")
+        .style("background-color", "rgba(0, 0, 0, 0.7)")
+        .style("color", "#fff")
+        .style("padding", "8px")
+        .style("border-radius", "5px")
+        .style("font-size", "12px")
+        .style("pointer-events", "none")
+        .style("opacity", 0);
+
+    // Add bubbles (circles)
+    const bubbles = bubbleChart.selectAll("circle")
+        .data(combinedData, d => d.id)
+        .enter().append("circle")
+        .attr("r", d => sizeScale(d.value))
+        .attr("fill", d => d.value === 0 ? "red" : "green") // Set color based on value
+        .attr("stroke", "white")
+        .attr("stroke-width", 2)
+        .call(d3.drag() // Enable dragging
+            .on("start", dragStarted)
+            .on("drag", dragged)
+            .on("end", dragEnded))
+        .on("mouseover", (event, d) => {
+            tooltip.transition().duration(200).style("opacity", 0.9);
+            tooltip.html(`Label: ${d.label}<br>Value: ${d.value}`)
+                .style("left", (event.pageX + 10) + "px")
+                .style("top", (event.pageY - 20) + "px");
+
+            d3.select(event.target).attr("fill", "orange");
+        })
+        .on("mouseout", (event) => {
+            tooltip.transition().duration(200).style("opacity", 0);
+            d3.select(event.target).attr("fill", d => d.value === 0 ? "red" : "green");
+        });
+
+    // Add labels to the bubbles
+    const labels = bubbleChart.selectAll("text.bubble-label")
+        .data(combinedData)
+        .enter().append("text")
+        .attr("class", "bubble-label")
+        .style("fill", "#FFF")
+        .style("font-size", "12px")
+        .style("pointer-events", "none")
+        .attr("text-anchor", "middle")
+        .text(d => d.label);
+
+    // Update positions on each tick
+function ticked() {
+    // Update bubble positions
+    bubbles
+        .attr("cx", d => !isNaN(d.x) ? d.x : 0)  // Ensure cx is a number
+        .attr("cy", d => !isNaN(d.y) ? d.y : 0); // Ensure cy is a number
+
+    // Update label positions
+    labels
+        .attr("x", d => !isNaN(d.x) ? d.x : 0)  // Ensure x is a number
+        .attr("y", d => !isNaN(d.y) ? d.y + 4 : 0); // Ensure y is a number and offset by 4
+}
+
+
+    // Drag event handlers
+    function dragStarted(event, d) {
+        if (!event.active) simulation.alphaTarget(0.3).restart();
+        d.fx = d.x;
+        d.fy = d.y;
+    }
+
+    function dragged(event, d) {
+        d.fx = event.x;
+        d.fy = event.y;
+    }
+
+    function dragEnded(event, d) {
+        if (!event.active) simulation.alphaTarget(0);
+        d.fx = null;
+        d.fy = null;
+    }
+
+    // Function to update the chart based on new data
+    function updateBubbleChart(newMacroData, newVitaminData, newMicroData) {
+        console.log("test entrée")
+        console.log(newVitaminData)
+        // Convert the objects to an array of objects
+        let vitaminDataArray = Object.entries(newVitaminData).map(([axis, value]) => ({
+            axis: axis, // Vitamin name
+            value: value // Vitamin value
+        }));
+        let microDataArray = Object.entries(newMicroData).map(([axis, value]) => ({
+            axis: axis, // Vitamin name
+            value: value // Vitamin value
+        }));
+        // Update the combined data
+        const updatedData = [
+            ...Object.keys(newMacroData).map((key, index) => ({
+                id: `macro-${index + 1}`,
+                value: newMacroData[key],
+                label: key
+            })),
+            ...vitaminDataArray.map((v, index) => ({
+                id: `vitamin-${index + 1}`,
+                value: v.value,
+                label: v.axis
+            })),
+            ...microDataArray.map((m, index) => ({
+                id: `micro-${index + 1}`,
+                value: m.value,
+                label: m.axis
+            }))
+        ];
+
+        // Update the size scale
+        sizeScale.domain([0, d3.max(updatedData, d => d.value)]);
+
+        // Rebind the updated data to the bubbles
+        const updatedBubbles = bubbleChart.selectAll("circle")
+            .data(updatedData, d => d.id);
+
+        // Update bubble attributes
+        updatedBubbles
+            .transition().duration(500) // Animate the update
+            .attr("r", d => sizeScale(d.value))
+            .attr("fill", d => d.value === 0 ? "red" : "green");
+
+        // Update bubble labels
+        const updatedLabels = bubbleChart.selectAll("text.bubble-label")
+            .data(updatedData);
+
+        updatedLabels
+            .transition().duration(500) // Animate the update
+            .attr("x", d => d.x)
+            .attr("y", d => d.y + 4)
+            .text(d => d.label);
+
+        // Restart the simulation to update positions
+        simulation.nodes(updatedData).alpha(1).restart();
+    }
+
+    return updateBubbleChart; // Return the update function so you can call it later
+}
+
+
+
